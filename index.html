@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SPARK</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Colors */
+            --bg-color: #0D0D0F;
+            --surface-color: #1A1A22;
+            --primary-accent: #FFD700; /* Yellow */
+            --secondary-accent: #FF6B00; /* Orange */
+            --tertiary-accent: #7B2FFF; /* Purple */
+            --text-main: #FFFFFF;
+            --text-muted: #A0A0B0;
+            --success: #4CAF50;
+            --danger: #F44336;
+
+            /* Typography */
+            --font-headings: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            overflow: hidden; /* Prevent scrolling on body, handle internally */
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            max-width: 600px; /* Constrain on larger screens, typical for mini apps */
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Animations */
+        @keyframes glowPulse {
+            0% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.8)); transform: scale(1.02); }
+            100% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4)); transform: scale(1); }
+        }
+
+        @keyframes clickBounce {
+            0% { transform: scale(1.02); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1.02); }
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+        }
+
+        @keyframes sparkFly {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+        }
+
+        @keyframes cardShake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            50% { transform: translateX(4px); }
+            75% { transform: translateX(-4px); }
+            100% { transform: translateX(0); }
+        }
+
+        @keyframes greenFlash {
+            0% { background-color: var(--surface-color); }
+            50% { background-color: rgba(76, 175, 80, 0.3); }
+            100% { background-color: var(--surface-color); }
+        }
+
+        @keyframes pulseGold {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+        }
+
+        /* Layout styles */
+        .header {
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(13, 13, 15, 1) 0%, rgba(13, 13, 15, 0) 100%);
+            z-index: 10;
+        }
+
+        .score-container {
+            font-family: var(--font-headings);
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--primary-accent);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .passive-income {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 0 20px 20px 20px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Tap Tab Specifics */
+        .click-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 250px;
+        }
+
+        .lightbulb {
+            width: 150px;
+            height: 150px;
+            cursor: pointer;
+            animation: glowPulse 3s infinite ease-in-out;
+            position: relative;
+            z-index: 5;
+        }
+
+        .lightbulb svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--primary-accent);
+            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
+        }
+
+        .floating-text {
+            position: absolute;
+            font-family: var(--font-headings);
+            font-weight: 700;
+            font-size: 24px;
+            color: var(--primary-accent);
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            z-index: 10;
+        }
+
+        .spark {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background-color: var(--primary-accent);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkFly 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            z-index: 10;
+        }
+
+        /* Upgrades & Lists */
+        .upgrades-carousel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 80px; /* Space for nav */
+        }
+
+        .card {
+            background-color: var(--surface-color);
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+        .card-icon {
+            font-size: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+
+        .card-info {
+            flex: 1;
+        }
+
+        .card-title {
+            font-family: var(--font-headings);
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .card-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card-cost {
+            color: var(--primary-accent);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card-lvl {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+
+        .buy-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: var(--font-headings);
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .buy-btn.affordable {
+            background: var(--tertiary-accent);
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--surface-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 10px 25px; /* Extra bottom padding for safe area */
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+            z-index: 20;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary-accent);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-text {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Modals and Popups */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .modal-title {
+            font-family: var(--font-headings);
+            font-size: 24px;
+            color: var(--primary-accent);
+            margin-bottom: 15px;
+        }
+
+        .modal-text {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .modal-btn {
+            background: var(--tertiary-accent);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-family: var(--font-headings);
+            font-size: 16px;
+            font-weight: 700;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .modal-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 10px;
+        }
+
+        /* Utils */
+        .section-title {
+            font-family: var(--font-headings);
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: var(--primary-accent);
+        }
+
+        .btn-large {
+            background: var(--surface-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            font-family: var(--font-headings);
+            font-size: 16px;
+            font-weight: 700;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-large:active {
+            transform: scale(0.98);
+        }
+
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 80px;
+        }
+
+        .list-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rank-badge {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 215, 0, 0.1);
+            color: var(--primary-accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <div class="score-container">
+                <span id="scoreDisplay">0</span> 💡
+            </div>
+            <div class="passive-income">
+                +<span id="passiveDisplay">0</span> ideas/sec
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- TAP TAB -->
+            <div id="tab-tap" class="tab-content active">
+                <div class="click-area" id="clickArea">
+                    <div class="lightbulb" id="lightbulb">
+                        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Custom Stylized Lightbulb -->
+                            <path d="M50 10 C35 10 25 22 25 36 C25 45 30 52 35 58 C37 60 38 63 38 66 L38 72 C38 75 40 78 43 78 L57 78 C60 78 62 75 62 72 L62 66 C62 63 63 60 65 58 C70 52 75 45 75 36 C75 22 65 10 50 10 Z" fill="var(--primary-accent)"/>
+                            <rect x="40" y="80" width="20" height="4" rx="2" fill="var(--text-muted)"/>
+                            <rect x="41" y="86" width="18" height="4" rx="2" fill="var(--text-muted)"/>
+                            <path d="M45 92 L55 92 C56 92 57 93 56 94 L52 98 C51 99 49 99 48 98 L44 94 C43 93 44 92 45 92 Z" fill="#555"/>
+                            <!-- Filament -->
+                            <path d="M43 36 L47 45 L53 45 L57 36" fill="none" stroke="#FFF" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="upgrades-carousel" id="upgradesList">
+                    <!-- Upgrades injected by JS -->
+                </div>
+            </div>
+
+            <!-- BOOSTS TAB -->
+            <div id="tab-boosts" class="tab-content">
+                <h2 class="section-title">Boosts</h2>
+                <div class="list-container">
+                    <button class="btn-large" id="btnTurbo" style="border-color: var(--tertiary-accent);">
+                        ⚡ Turbo Click (500 💡)
+                    </button>
+                    <button class="btn-large" id="btnEureka" style="border-color: var(--secondary-accent);">
+                        🎯 Eureka Moment (Free)
+                    </button>
+                    <div class="card" id="cardOffline" style="opacity: 0.5;">
+                        <div class="card-icon">🌙</div>
+                        <div class="card-info">
+                            <div class="card-title">Offline Bonus</div>
+                            <div class="card-desc" id="offlineStatus">Come back later to collect</div>
+                        </div>
+                        <button class="buy-btn" id="btnClaimOffline" style="display: none;">Claim</button>
+                    </div>
+                    <button class="btn-large" id="btnBuyStars" style="margin-top: 20px; background: rgba(255, 215, 0, 0.1); color: var(--primary-accent);">
+                        ⭐ Buy Boosts with Stars
+                    </button>
+                </div>
+            </div>
+
+            <!-- TEAM TAB -->
+            <div id="tab-team" class="tab-content">
+                <h2 class="section-title">Leaderboard</h2>
+                <div class="list-container" id="leaderboardList">
+                    <!-- Mock leaderboard injected by JS -->
+                </div>
+            </div>
+
+            <!-- FRIENDS TAB -->
+            <div id="tab-friends" class="tab-content">
+                <h2 class="section-title">Invite Friends</h2>
+                <button class="btn-large" id="btnInvite" style="background: var(--tertiary-accent);">
+                    🔗 Copy Referral Link
+                </button>
+                <button class="btn-large" id="btnSimulateInvite" style="background: rgba(255, 255, 255, 0.1);">
+                    🧪 Simulate Invite (+500 💡)
+                </button>
+                <h3 class="section-title" style="font-size: 16px; margin-top: 20px;">Your Friends</h3>
+                <div class="list-container" id="friendsList">
+                    <!-- Friends injected by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-item active" data-tab="tap">
+                <span class="nav-icon">💡</span>
+                <span class="nav-text">Tap</span>
+            </div>
+            <div class="nav-item" data-tab="boosts">
+                <span class="nav-icon">🚀</span>
+                <span class="nav-text">Boosts</span>
+            </div>
+            <div class="nav-item" data-tab="team">
+                <span class="nav-icon">🏆</span>
+                <span class="nav-text">Team</span>
+            </div>
+            <div class="nav-item" data-tab="friends">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">Friends</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offline Bonus Modal -->
+    <div class="modal-overlay" id="modalOffline">
+        <div class="modal-content">
+            <div class="modal-title">Welcome Back!</div>
+            <div class="modal-text">
+                You were away for <span id="offlineTimeStr">0m</span>.<br>
+                Your team generated:<br>
+                <strong style="color: var(--primary-accent); font-size: 24px; display: block; margin-top: 10px;">+<span id="offlineEarnedStr">0</span> 💡</strong>
+            </div>
+            <button class="modal-btn" id="modalBtnClaim">Claim Ideas</button>
+        </div>
+    </div>
+
+    <!-- Coming Soon Modal -->
+    <div class="modal-overlay" id="modalComingSoon">
+        <div class="modal-content">
+            <div class="modal-title">Coming Soon</div>
+            <div class="modal-text">
+                Pay with Telegram Stars will be available in the next update!
+            </div>
+            <button class="modal-btn" id="modalBtnClose">Got it</button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Adapt theme colors if available from Telegram
+        if (tg.themeParams && tg.themeParams.bg_color) {
+            // Keep the dark aesthetic, but adapt slightly if needed, or strictly enforce dark theme
+            // Since it's a neon dark theme by design, we mostly force our vars,
+            // but we can set body background to tg.themeParams.bg_color if requested.
+            // For now, adhering strictly to the user's color request:
+            // background #0D0D0F, surfaces #1A1A22
+            document.body.style.backgroundColor = 'var(--bg-color)';
+            tg.setHeaderColor('#0D0D0F');
+            tg.setBackgroundColor('#0D0D0F');
+        }
+
+        // Game State Structure
+        const defaultState = {
+            ideas: 0,
+            lastSaveTime: Date.now(),
+            ipoMultiplier: 1,
+            turboEndTime: 0,
+            eurekaEndTime: 0,
+            eurekaCooldownEnd: 0,
+            offlineEarningsToClaim: 0,
+            offlineTimeAwayMs: 0,
+            friends: [], // array of {name: string, ideas: number}
+            upgrades: {
+                energy_drink: { id: 'energy_drink', name: 'Energy Drink', icon: '☕', baseCost: 100, baseIncome: 1, level: 0, desc: '+1/sec' },
+                laptop: { id: 'laptop', name: 'Laptop', icon: '💻', baseCost: 500, baseIncome: 5, level: 0, desc: '+5/sec' },
+                junior_dev: { id: 'junior_dev', name: 'Junior Dev', icon: '👨‍💻', baseCost: 2000, baseIncome: 20, level: 0, desc: '+20/sec' },
+                designer: { id: 'designer', name: 'Designer', icon: '🎨', baseCost: 8000, baseIncome: 50, level: 0, desc: '+50/sec' },
+                marketer: { id: 'marketer', name: 'Marketer', icon: '📣', baseCost: 25000, baseIncome: 100, level: 0, desc: '+100/sec' },
+                ai_agent: { id: 'ai_agent', name: 'AI Agent', icon: '🤖', baseCost: 100000, baseIncome: 500, level: 0, desc: '+500/sec' },
+                office: { id: 'office', name: 'Office', icon: '🏢', baseCost: 500000, baseIncome: 2000, level: 0, desc: '+2000/sec' },
+                investor: { id: 'investor', name: 'Investor', icon: '💰', baseCost: 2000000, baseIncome: 10000, level: 0, desc: '+10000/sec' },
+                ipo: { id: 'ipo', name: 'IPO', icon: '🚀', baseCost: 10000000, baseIncome: 0, level: 0, desc: 'Reset with x2 permanent multiplier' }
+            }
+        };
+
+        let state = JSON.parse(JSON.stringify(defaultState));
+
+        // Format number with commas
+        function formatNumber(num) {
+            return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+
+        function formatTimeDigital(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Load State
+        function loadState() {
+            const savedState = localStorage.getItem('spark_game_state');
+            if (savedState) {
+                try {
+                    const parsed = JSON.parse(savedState);
+                    // Merge saved state with default state to handle new properties
+                    state = { ...defaultState, ...parsed };
+
+                    // Restore upgrades carefully to maintain object structure
+                    for (const key in defaultState.upgrades) {
+                        if (state.upgrades[key]) {
+                            state.upgrades[key] = { ...defaultState.upgrades[key], ...state.upgrades[key] };
+                        } else {
+                            state.upgrades[key] = { ...defaultState.upgrades[key] };
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load state", e);
+                    state = JSON.parse(JSON.stringify(defaultState));
+                }
+            }
+
+            calculateOfflineEarnings();
+        }
+
+        // Save State
+        function saveState() {
+            state.lastSaveTime = Date.now();
+            localStorage.setItem('spark_game_state', JSON.stringify(state));
+        }
+
+        // Calculate Offline Earnings
+        function calculateOfflineEarnings() {
+            const now = Date.now();
+            const timeAwayMs = now - state.lastSaveTime;
+            const passiveRate = getBasePassiveIncome();
+
+            // Only process if away for more than 60 seconds and passive rate > 0
+            if (timeAwayMs > 60000 && passiveRate > 0) {
+                // Cap offline time at 3 hours (10800000 ms)
+                const effectiveTimeMs = Math.min(timeAwayMs, 10800000);
+                const effectiveSeconds = effectiveTimeMs / 1000;
+
+                const earned = effectiveSeconds * passiveRate;
+
+                state.offlineEarningsToClaim = earned;
+                state.offlineTimeAwayMs = effectiveTimeMs;
+
+                showOfflineModal();
+            }
+
+            state.lastSaveTime = now;
+        }
+
+        // Core Math Functions
+        function getCost(upgradeId) {
+            const u = state.upgrades[upgradeId];
+            if (upgradeId === 'ipo') return u.baseCost; // IPO is flat 10M
+            return Math.floor(u.baseCost * Math.pow(1.15, u.level));
+        }
+
+        function getBasePassiveIncome() {
+            let passive = 0;
+            for (const key in state.upgrades) {
+                if (key !== 'ipo') {
+                    passive += state.upgrades[key].baseIncome * state.upgrades[key].level;
+                }
+            }
+            return passive * state.ipoMultiplier;
+        }
+
+        function getCurrentPassiveIncome() {
+            let passive = getBasePassiveIncome();
+            if (Date.now() < state.eurekaEndTime) {
+                passive *= 10;
+            }
+            return passive;
+        }
+
+        function getClickPower() {
+            let totalLevels = 0;
+            for (const key in state.upgrades) {
+                if (key !== 'ipo') {
+                    totalLevels += state.upgrades[key].level;
+                }
+            }
+
+            let power = 1 + (totalLevels * 0.1);
+            power *= state.ipoMultiplier;
+
+            if (Date.now() < state.turboEndTime) {
+                power *= 10;
+            }
+
+            return power;
+        }
+
+        // Main Game Loop (runs 10 times a second)
+        let lastTickTime = Date.now();
+        let saveCounter = 0;
+
+        function gameLoop() {
+            const now = Date.now();
+            const deltaMs = now - lastTickTime;
+            lastTickTime = now;
+
+            // Passive Income Calculation
+            const currentPassive = getCurrentPassiveIncome();
+            if (currentPassive > 0) {
+                state.ideas += currentPassive * (deltaMs / 1000);
+            }
+
+            // Update UI
+            updateUI();
+
+            // Save roughly every 5 seconds (50 ticks)
+            saveCounter++;
+            if (saveCounter >= 50) {
+                saveState();
+                saveCounter = 0;
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- UI Updating ---
+        function updateUI() {
+            document.getElementById('scoreDisplay').innerText = formatNumber(state.ideas);
+            document.getElementById('passiveDisplay').innerText = formatNumber(getCurrentPassiveIncome());
+
+            const now = Date.now();
+
+            // Update Turbo Button
+            const btnTurbo = document.getElementById('btnTurbo');
+            if (now < state.turboEndTime) {
+                const remainingStr = formatTimeDigital(state.turboEndTime - now);
+                btnTurbo.innerText = `⚡ Turbo Active (${remainingStr})`;
+                btnTurbo.style.background = 'rgba(255, 107, 0, 0.2)';
+            } else {
+                btnTurbo.innerText = `⚡ Turbo Click (500 💡)`;
+                btnTurbo.style.background = 'var(--surface-color)';
+                btnTurbo.style.opacity = state.ideas >= 500 ? '1' : '0.5';
+            }
+
+            // Update Eureka Button
+            const btnEureka = document.getElementById('btnEureka');
+            if (now < state.eurekaEndTime) {
+                const remainingStr = formatTimeDigital(state.eurekaEndTime - now);
+                btnEureka.innerText = `🎯 Eureka Active (${remainingStr})`;
+                btnEureka.style.background = 'rgba(255, 215, 0, 0.2)';
+                btnEureka.style.animation = 'none';
+            } else if (now < state.eurekaCooldownEnd) {
+                const cooldownStr = formatTimeDigital(state.eurekaCooldownEnd - now);
+                btnEureka.innerText = `🎯 Eureka Cooldown (${cooldownStr})`;
+                btnEureka.style.background = 'var(--surface-color)';
+                btnEureka.style.opacity = '0.5';
+                btnEureka.style.animation = 'none';
+            } else {
+                btnEureka.innerText = `🎯 Eureka Moment (Ready!)`;
+                btnEureka.style.opacity = '1';
+                btnEureka.style.background = 'var(--surface-color)';
+                btnEureka.style.animation = 'pulseGold 2s infinite';
+            }
+
+            // Update Offline Card in Boosts Tab
+            const cardOffline = document.getElementById('cardOffline');
+            const btnClaimOffline = document.getElementById('btnClaimOffline');
+            const offlineStatus = document.getElementById('offlineStatus');
+
+            if (state.offlineEarningsToClaim > 0) {
+                cardOffline.style.opacity = '1';
+                btnClaimOffline.style.display = 'block';
+                offlineStatus.innerText = `${formatNumber(state.offlineEarningsToClaim)} ideas ready`;
+                offlineStatus.style.color = 'var(--primary-accent)';
+            } else {
+                cardOffline.style.opacity = '0.5';
+                btnClaimOffline.style.display = 'none';
+                offlineStatus.innerText = 'Come back later to collect';
+                offlineStatus.style.color = 'var(--text-muted)';
+            }
+
+            // Update Upgrade Buttons
+            for (const key in state.upgrades) {
+                const btn = document.getElementById(`buy-${key}`);
+                if (btn) {
+                    const cost = getCost(key);
+                    if (state.ideas >= cost) {
+                        btn.classList.add('affordable');
+                    } else {
+                        btn.classList.remove('affordable');
+                    }
+                    btn.innerText = `Buy (${formatNumber(cost)} 💡)`;
+                }
+            }
+        }
+
+        // --- Render Upgrades ---
+        function renderUpgrades() {
+            const list = document.getElementById('upgradesList');
+            list.innerHTML = '';
+
+            for (const key in state.upgrades) {
+                const u = state.upgrades[key];
+                const cost = getCost(key);
+
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.id = `card-${key}`;
+
+                let statsHtml = '';
+                if (key === 'ipo') {
+                    statsHtml = `<div class="card-stats"><span>${u.desc}</span></div>`;
+                } else {
+                    statsHtml = `
+                        <div class="card-stats">
+                            <span>Income: +${formatNumber(u.baseIncome)}/sec</span>
+                            <span class="card-lvl">Lvl ${u.level}</span>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="card-icon">${u.icon}</div>
+                    <div class="card-info">
+                        <div class="card-title">${u.name}</div>
+                        ${statsHtml}
+                    </div>
+                    <button class="buy-btn" id="buy-${key}">Buy (${formatNumber(cost)} 💡)</button>
+                `;
+
+                list.appendChild(card);
+
+                document.getElementById(`buy-${key}`).addEventListener('click', (e) => {
+                    buyUpgrade(key, e.target);
+                });
+            }
+        }
+
+        // --- Actions ---
+        function buyUpgrade(upgradeId, btnElement) {
+            const cost = getCost(upgradeId);
+
+            if (state.ideas >= cost) {
+                state.ideas -= cost;
+
+                if (upgradeId === 'ipo') {
+                    const newMultiplier = state.ipoMultiplier * 2;
+                    state = JSON.parse(JSON.stringify(defaultState));
+                    state.ipoMultiplier = newMultiplier;
+                    renderUpgrades(); // Re-render everything since level is 0
+                } else {
+                    state.upgrades[upgradeId].level++;
+
+                    // Visual feedback
+                    const card = document.getElementById(`card-${upgradeId}`);
+                    card.style.animation = 'none';
+                    card.offsetHeight; /* trigger reflow */
+                    card.style.animation = 'cardShake 0.4s, greenFlash 0.4s';
+
+                    // Update specific card text
+                    const lvlSpan = card.querySelector('.card-lvl');
+                    if (lvlSpan) lvlSpan.innerText = `Lvl ${state.upgrades[upgradeId].level}`;
+                }
+
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                saveState();
+            } else {
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+            }
+        }
+
+        function clickLightbulb(e) {
+            const power = getClickPower();
+            state.ideas += power;
+
+            // Haptic
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+            // Visual bounce
+            const bulb = document.getElementById('lightbulb');
+            bulb.style.animation = 'none';
+            bulb.offsetHeight; /* trigger reflow */
+            bulb.style.animation = 'glowPulse 3s infinite ease-in-out, clickBounce 0.1s';
+
+            // Floating text
+            createFloatingText(e.clientX, e.clientY, `+${formatNumber(power)}`);
+
+            // Sparks
+            createSparks(e.clientX, e.clientY);
+        }
+
+        function createFloatingText(x, y, text) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.innerText = text;
+            el.style.left = `${x - 20}px`;
+            el.style.top = `${y - 20}px`;
+            document.body.appendChild(el);
+
+            setTimeout(() => { el.remove(); }, 1000);
+        }
+
+        function createSparks(x, y) {
+            for (let i = 0; i < 8; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'spark';
+
+                const angle = (Math.PI * 2 * i) / 8;
+                const distance = 40 + Math.random() * 40;
+                const tx = Math.cos(angle) * distance;
+                const ty = Math.sin(angle) * distance;
+
+                spark.style.setProperty('--tx', `${tx}px`);
+                spark.style.setProperty('--ty', `${ty}px`);
+                spark.style.left = `${x}px`;
+                spark.style.top = `${y}px`;
+
+                document.body.appendChild(spark);
+                setTimeout(() => { spark.remove(); }, 600);
+            }
+        }
+
+        // --- Modals & Popups ---
+        function showOfflineModal() {
+            document.getElementById('offlineTimeStr').innerText = formatTime(state.offlineTimeAwayMs);
+            document.getElementById('offlineEarnedStr').innerText = formatNumber(state.offlineEarningsToClaim);
+            document.getElementById('modalOffline').classList.add('active');
+        }
+
+        function claimOfflineEarnings() {
+            if (state.offlineEarningsToClaim > 0) {
+                state.ideas += state.offlineEarningsToClaim;
+                state.offlineEarningsToClaim = 0;
+                state.offlineTimeAwayMs = 0;
+                saveState();
+
+                document.getElementById('modalOffline').classList.remove('active');
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        // --- Tabs Navigation ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.querySelector(`.nav-item[data-tab="${tabId}"]`).classList.add('active');
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        // --- Render Team & Friends ---
+        function renderTeam() {
+            const list = document.getElementById('leaderboardList');
+            const mockData = [
+                { name: 'Pavel Durov', score: 1420500000, rank: 1 },
+                { name: 'Elon M.', score: 850000000, rank: 2 },
+                { name: 'Satoshi N.', score: 500000000, rank: 3 },
+                { name: 'Crypto King', score: 125000000, rank: 4 },
+                { name: 'Ton Foundation', score: 98000000, rank: 5 },
+                { name: 'Startup Bro', score: 45000000, rank: 6 },
+                { name: 'VC Fund', score: 22000000, rank: 7 },
+                { name: 'Hacker', score: 15000000, rank: 8 },
+                { name: 'Degen', score: 8000000, rank: 9 },
+                { name: 'You', score: state.ideas, rank: 10 }
+            ];
+
+            list.innerHTML = '';
+            mockData.forEach(p => {
+                const isYou = p.name === 'You';
+                const rankColor = p.rank <= 3 ? 'var(--primary-accent)' : 'var(--text-muted)';
+                list.innerHTML += `
+                    <div class="list-item" style="${isYou ? 'background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.3);' : ''}">
+                        <div style="display: flex; align-items: center;">
+                            <div class="rank-badge" style="color: ${rankColor};">${p.rank}</div>
+                            <strong style="font-family: var(--font-headings);">${p.name}</strong>
+                        </div>
+                        <div style="font-family: var(--font-headings); color: var(--primary-accent);">
+                            ${formatNumber(isYou ? state.ideas : p.score)} 💡
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderFriends() {
+            const list = document.getElementById('friendsList');
+            list.innerHTML = '';
+
+            if (state.friends.length === 0) {
+                list.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">You haven't invited any friends yet.</div>`;
+                return;
+            }
+
+            state.friends.forEach(f => {
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-color); display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                👤
+                            </div>
+                            <strong style="font-family: var(--font-headings);">${f.name}</strong>
+                        </div>
+                        <div style="font-family: var(--font-headings); color: var(--primary-accent);">
+                            ${formatNumber(f.ideas)} 💡
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- Setup Event Listeners ---
+        document.getElementById('lightbulb').addEventListener('pointerdown', (e) => {
+            // Prevent default behavior to stop double firing on some mobile browsers
+            e.preventDefault();
+            clickLightbulb(e.touches ? e.touches[0] : e);
+        });
+
+        // Tab Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                switchTab(item.getAttribute('data-tab'));
+                if (item.getAttribute('data-tab') === 'team') renderTeam();
+                if (item.getAttribute('data-tab') === 'friends') renderFriends();
+            });
+        });
+
+        // Modals
+        document.getElementById('modalBtnClaim').addEventListener('click', claimOfflineEarnings);
+        document.getElementById('btnClaimOffline').addEventListener('click', claimOfflineEarnings);
+
+        document.getElementById('btnBuyStars').addEventListener('click', () => {
+            document.getElementById('modalComingSoon').classList.add('active');
+        });
+        document.getElementById('modalBtnClose').addEventListener('click', () => {
+            document.getElementById('modalComingSoon').classList.remove('active');
+        });
+
+        // Boosts
+        document.getElementById('btnTurbo').addEventListener('click', () => {
+            if (state.ideas >= 500) {
+                state.ideas -= 500;
+                const now = Date.now();
+                if (now < state.turboEndTime) {
+                    state.turboEndTime += 30000; // stack duration
+                } else {
+                    state.turboEndTime = now + 30000;
+                }
+                saveState();
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }
+        });
+
+        document.getElementById('btnEureka').addEventListener('click', () => {
+            const now = Date.now();
+            if (now >= state.eurekaCooldownEnd) {
+                state.eurekaEndTime = now + 30000;
+                state.eurekaCooldownEnd = now + (3 * 60 * 60 * 1000); // 3 hours
+                saveState();
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }
+        });
+
+        // Friends
+        document.getElementById('btnInvite').addEventListener('click', () => {
+            const userId = tg.initDataUnsafe?.user?.id || 'demo123';
+            const link = `https://t.me/YourBot?start=ref_${userId}`;
+
+            // Try to use Telegram share, fallback to clipboard
+            if (tg.openTelegramLink) {
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join me on SPARK!')}`);
+            } else {
+                navigator.clipboard.writeText(link);
+                alert('Referral link copied to clipboard!');
+            }
+        });
+
+        document.getElementById('btnSimulateInvite').addEventListener('click', () => {
+            const mockNames = ['Alex', 'Maria', 'John', 'Sarah', 'Dmitry', 'Elena'];
+            const randomName = mockNames[Math.floor(Math.random() * mockNames.length)] + ' ' + Math.floor(Math.random() * 100);
+
+            state.friends.push({
+                name: randomName,
+                ideas: Math.floor(Math.random() * 50000)
+            });
+
+            state.ideas += 500; // Reward
+            saveState();
+            renderFriends();
+
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+            // Show floating reward text roughly center screen
+            createFloatingText(window.innerWidth / 2, window.innerHeight / 2, '+500');
+        });
+
+        // Setup and Init
+        function init() {
+            loadState();
+            renderUpgrades();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
